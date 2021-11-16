@@ -9,3 +9,91 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model User{
+  id Int @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  username String @db.VarChar(255)
+  password String @db.VarChar(255)
+  googleId String? @db.VarChar(32) @unique
+  facebookId String? @db.VarChar(32) @unique
+  email String @db.VarChar(512) @unique
+  friends Friend[] @relation("user")
+  friendOf Friend[] @relation("friend")
+  sentRequests Request[] @relation("from")
+  receivedRequests Request[] @relation("to")
+  asMember groupMember[]
+
+}
+
+model Friend{
+  user User @relation(name:"user", fields: [userId], references: [id])
+  userId Int
+  friend User @relation(name:"friend", fields: [friendId], references: [id])
+  friendId Int
+  createdAt DateTime @default(now())
+  
+  
+
+  @@id([userId, friendId])
+}
+
+model Request{
+  id Int @id @default(autoincrement())
+  from User @relation(name: "from", fields:[fromId], references: [id]) 
+  fromId Int
+  to User @relation(name: "to", fields:[toId], references: [id])
+  toId Int
+  createdAt DateTime @default(now())
+  messageGroup MessageGroup @relation(fields: [messageGroupId], references:[id])
+  messageGroupId Int
+
+  @@unique([fromId, toId])
+
+}
+
+model MessageGroup{
+  id Int @id @default(autoincrement())
+  members groupMember[]
+  createdAt DateTime @default(now())
+  type groupType @default(DM)
+  // request Request? @relation(fields: [requestId], references:[id])
+  // requestId Int @default(-1)
+  messages Message[]
+  request Request?
+
+}
+
+model groupMember{
+  id Int @id @default(autoincrement())
+  user User @relation(fields: [userId], references:[id])
+  userId Int 
+  Group MessageGroup @relation(fields: [groupId], references:[id])
+  groupId Int
+  joinedAt DateTime @default(now())
+  relationToGroup relationToGroup @default(DM)
+  messages Message[]
+}
+
+model Message{
+  id Int @id @default(autoincrement())
+  member groupMember @relation(fields: [memberId], references:[id])
+  memberId Int 
+  sentAt DateTime @default(now())
+  messageGroup MessageGroup @relation(fields: [messageGroupId], references:[id])
+  messageGroupId Int
+  message String @db.Text()
+}
+
+enum groupType{
+  DM
+  GROUP
+  REQUEST
+}
+
+enum relationToGroup{
+  DM
+  RECEIVED_REQ
+  SENT_REQ
+  GROUP
+}
