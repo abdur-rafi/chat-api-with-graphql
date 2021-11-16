@@ -15,6 +15,8 @@ async function main() {
             }
         }).friends()
     )
+    prisma.user.deleteMany()
+
 }
 
 

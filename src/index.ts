@@ -10,10 +10,10 @@ import { ApolloServer } from "apollo-server-express";
 import { ApolloServerPluginLandingPageGraphQLPlayground} from "apollo-server-core";
 import {createServer} from 'http'
 import { queryResolver } from "./graphql/resolvers/query";
-import { groupMemberResolver, userResolver } from "./graphql/resolvers/fieldResolvers";
+import { friendResolver, groupMemberResolver, messageGroupResolver, messageResolver, requestResolver, userResolver } from "./graphql/resolvers/fieldResolvers";
 
 buildSchema({
-    resolvers : [mutationResolver, queryResolver, userResolver, groupMemberResolver]
+    resolvers : [mutationResolver, queryResolver, userResolver, friendResolver, requestResolver, messageGroupResolver, groupMemberResolver, messageResolver]
 })
 .then(async schema =>{
     const app = express();

@@ -96,6 +96,7 @@ export class MessageGroup{
 
 @ObjectType()
 export class GroupMember{
+    @Field()
     id : number;
 
     @Field(type => User)

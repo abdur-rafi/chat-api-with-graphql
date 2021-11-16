@@ -1,6 +1,6 @@
 import { Arg, Ctx, Mutation, Resolver } from "type-graphql";
 import { Context } from "../../ctx";
-import { Friend, Request, User } from "../graphql-schema";
+import { Friend, Message, Request, User } from "../graphql-schema";
 
 @Resolver()
 export class mutationResolver{
@@ -12,11 +12,7 @@ export class mutationResolver{
         @Arg("password") password : string,
         @Arg('email') email : string
     ){
-        let t = await ctx.prisma.user.findUnique({
-            where : {
-                email : email
-            }
-        })
+        let t = await ctx.prisma.user.findUnique({where : {email : email}})
         if(t){
             throw new Error(`Email already used`)
         }
@@ -49,30 +45,18 @@ export class mutationResolver{
         }
         return await ctx.prisma.request.create({
             data : {
-                from : {
-                    connect : {
-                        id : fromId
-                    }
-                },
-                to : {
-                    connect : {
-                        id : toId
-                    }
-                },
+                from : { connect : {id : fromId} },
+                to : { connect : {id : toId}},
                 messageGroup : {
                     create : {
                         members : {
                             create : [
                                 {
-                                    user : {
-                                        connect : {id : fromId}
-                                    },
+                                    user : {connect : {id : fromId}},
                                     relationToGroup : "SENT_REQ"
                                 },
                                 {
-                                    user : {
-                                        connect : {id : toId}
-                                    },
+                                    user : {connect : {id : toId}},
                                     relationToGroup : "RECEIVED_REQ"
                                 }
                             ]
@@ -112,12 +96,8 @@ export class mutationResolver{
             ]
         })
         let p2 = ctx.prisma.messageGroup.update({
-            where : {
-                id : req.messageGroupId
-            },
-            data : {
-                type : 'DM'
-            }
+            where : {id : req.messageGroupId},
+            data : {type : 'DM'}
         })
         
 
@@ -130,13 +110,13 @@ export class mutationResolver{
             }
         })
 
-        ctx.prisma.request.delete({
+        let p4 = ctx.prisma.request.delete({
             where : {
                 id : reqId
             }
         })
 
-        await Promise.all([p1, p2, p3])
+        await Promise.all([p1, p2, p3, p4])
 
         return await ctx.prisma.friend.findUnique({
             where : {
@@ -149,5 +129,20 @@ export class mutationResolver{
 
     }
 
+    @Mutation(type => Message)
+    async postMessage(
+        @Ctx() ctx : Context,
+        @Arg('groupId') groupId : number,
+        @Arg('memberId') memberId : number,
+        @Arg('message') message : string 
+    ){
+        return await ctx.prisma.message.create({
+            data : {
+                message : message,
+                member : { connect : { id : memberId } },
+                messageGroup : {connect : {id : groupId}}
+            }
+        })
+    }
 
 }

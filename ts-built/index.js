@@ -16,7 +16,7 @@ const http_1 = require("http");
 const query_1 = require("./graphql/resolvers/query");
 const fieldResolvers_1 = require("./graphql/resolvers/fieldResolvers");
 type_graphql_1.buildSchema({
-    resolvers: [mutations_1.mutationResolver, query_1.queryResolver, fieldResolvers_1.userResolver, fieldResolvers_1.groupMemberResolver]
+    resolvers: [mutations_1.mutationResolver, query_1.queryResolver, fieldResolvers_1.userResolver, fieldResolvers_1.friendResolver, fieldResolvers_1.requestResolver, fieldResolvers_1.messageGroupResolver, fieldResolvers_1.groupMemberResolver, fieldResolvers_1.messageResolver]
 })
     .then(async (schema) => {
     const app = express_1.default();

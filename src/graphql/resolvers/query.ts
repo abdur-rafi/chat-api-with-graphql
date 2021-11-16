@@ -1,6 +1,6 @@
 import { Arg, Ctx, Query, Resolver } from "type-graphql";
 import { Context } from "../../ctx";
-import { User } from "../graphql-schema";
+import { MessageGroup, User } from "../graphql-schema";
 
 @Resolver()
 export class queryResolver{
@@ -33,4 +33,5 @@ export class queryResolver{
     ){
         return await ctx.prisma.user.findMany();
     }
+    
 }

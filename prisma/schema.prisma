@@ -73,6 +73,8 @@ model groupMember{
   joinedAt DateTime @default(now())
   relationToGroup relationToGroup @default(DM)
   messages Message[]
+
+  @@unique([userId, groupId])
 }
 
 model Message{
