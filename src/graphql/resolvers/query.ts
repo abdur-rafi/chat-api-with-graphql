@@ -1,6 +1,6 @@
 import { Arg, Ctx, Query, Resolver } from "type-graphql";
 import { Context } from "../../ctx";
-import { MessageGroup, User } from "../graphql-schema";
+import { GroupMember, MessageGroup, User } from "../graphql-schema";
 
 @Resolver()
 export class queryResolver{
@@ -33,5 +33,29 @@ export class queryResolver{
     ){
         return await ctx.prisma.user.findMany();
     }
+
+    @Query(returns => [GroupMember])
+    dmMembers(
+        @Ctx() ctx : Context,
+        @Arg('userId') userId : number
+    ){
+        return ctx.prisma.groupMember.findMany({ where : {userId : userId, relationToGroup : "DM"}})
+    }
+
+    @Query(returns => [GroupMember])
+    sentReqMembers(
+        @Ctx() ctx : Context,
+        @Arg('userId') userId : number
+    ){
+        return ctx.prisma.groupMember.findMany({ where : {userId : userId, relationToGroup : "SENT_REQ"}})
+    }
+
     
+    @Query(returns => [GroupMember])
+    receivedReqMembers(
+        @Ctx() ctx : Context,
+        @Arg('userId') userId : number
+    ){
+        return ctx.prisma.groupMember.findMany({ where : {userId : userId, relationToGroup : "RECEIVED_REQ"}})
+    }
 }

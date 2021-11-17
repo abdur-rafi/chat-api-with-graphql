@@ -1,6 +1,6 @@
 import { Arg, Ctx, Mutation, Resolver } from "type-graphql";
 import { Context } from "../../ctx";
-import { Friend, Message, Request, User } from "../graphql-schema";
+import { Friend, GroupMember, Message, MessageGroup, Request, User } from "../graphql-schema";
 
 @Resolver()
 export class mutationResolver{
@@ -129,7 +129,7 @@ export class mutationResolver{
 
     }
 
-    @Mutation(type => Message)
+    @Mutation(returns => Message)
     async postMessage(
         @Ctx() ctx : Context,
         @Arg('groupId') groupId : number,
@@ -143,6 +143,47 @@ export class mutationResolver{
                 messageGroup : {connect : {id : groupId}}
             }
         })
+    }
+
+    @Mutation(returns => Request)
+    async deleteRequest(
+        @Ctx() ctx : Context,
+        @Arg('reqId') reqId : number
+    ){
+        let r = await ctx.prisma.request.findUnique({where : {id : reqId}})
+        await ctx.prisma.messageGroup.delete({where : {id : r?.messageGroupId}})
+        return r;
+    }
+
+    @Mutation(type => MessageGroup)
+    createGroup(
+        @Ctx() ctx : Context,
+        @Arg('userId') userId : number
+    ){
+        return ctx.prisma.messageGroup.create({
+            data : {
+                members : {
+                    create : {user : {connect : {id : userId}}, relationToGroup : "GROUP"},
+                },
+                type : "GROUP"
+            }
+        })
+    }
+
+    @Mutation(returns => GroupMember)
+    addMember(
+        @Ctx() ctx : Context,
+        @Arg('groupId') groupId : number,
+        @Arg('userId') userId : number
+    ){
+        return ctx.prisma.groupMember.create({
+            data : {
+                Group : {connect : {id : groupId}},
+                user : {connect : {id : userId}},
+                relationToGroup : "GROUP"
+            }
+        })
+
     }
 
 }
