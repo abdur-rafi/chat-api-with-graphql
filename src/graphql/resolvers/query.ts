@@ -1,4 +1,4 @@
-import { Arg, Ctx, Query, Resolver } from "type-graphql";
+import { Arg, Authorized, Ctx, Query, Resolver } from "type-graphql";
 import { Context } from "../../ctx";
 import { GroupMember, MessageGroup, User } from "../graphql-schema";
 
@@ -12,12 +12,12 @@ export class queryResolver{
 
     @Query(retunrs => User)
     user(
-        @Ctx() ctx : Context, 
-        @Arg('id') id : number
+        @Ctx() ctx : Context
     ){
+        let userId = ctx.userId;
         let u = ctx.prisma.user.findUnique({
             where : {
-                id : id
+                id : userId
             }
         })
         if(!u){
@@ -34,28 +34,31 @@ export class queryResolver{
         return await ctx.prisma.user.findMany();
     }
 
+    @Authorized()
     @Query(returns => [GroupMember])
     dmMembers(
-        @Ctx() ctx : Context,
-        @Arg('userId') userId : number
+        @Ctx() ctx : Context
     ){
+        let userId = ctx.userId;
         return ctx.prisma.groupMember.findMany({ where : {userId : userId, relationToGroup : "DM"}})
     }
 
+    @Authorized()
     @Query(returns => [GroupMember])
     sentReqMembers(
-        @Ctx() ctx : Context,
-        @Arg('userId') userId : number
+        @Ctx() ctx : Context
     ){
+        let userId = ctx.userId;
         return ctx.prisma.groupMember.findMany({ where : {userId : userId, relationToGroup : "SENT_REQ"}})
     }
 
     
+    @Authorized()
     @Query(returns => [GroupMember])
     receivedReqMembers(
-        @Ctx() ctx : Context,
-        @Arg('userId') userId : number
+        @Ctx() ctx : Context
     ){
+        let userId = ctx.userId;
         return ctx.prisma.groupMember.findMany({ where : {userId : userId, relationToGroup : "RECEIVED_REQ"}})
     }
 }

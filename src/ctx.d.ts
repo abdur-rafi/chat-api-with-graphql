@@ -1,5 +1,6 @@
 import { PrismaClient } from ".prisma/client";
 
 interface Context{
-    prisma : PrismaClient
+    prisma : PrismaClient,
+    userId? : number
 }

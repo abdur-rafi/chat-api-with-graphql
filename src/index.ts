@@ -11,14 +11,19 @@ import { ApolloServerPluginLandingPageGraphQLPlayground} from "apollo-server-cor
 import {createServer} from 'http'
 import { queryResolver } from "./graphql/resolvers/query";
 import { friendResolver, groupMemberResolver, messageGroupResolver, messageResolver, requestResolver, userResolver } from "./graphql/resolvers/fieldResolvers";
+import { authChecker } from "./graphql/authChecker";
+import jwt from 'jsonwebtoken'
 
 buildSchema({
-    resolvers : [mutationResolver, queryResolver, userResolver, friendResolver, requestResolver, messageGroupResolver, groupMemberResolver, messageResolver]
+    resolvers : [mutationResolver, queryResolver, userResolver, friendResolver, requestResolver, messageGroupResolver, groupMemberResolver, messageResolver],
+    authChecker : authChecker
 })
 .then(async schema =>{
     const app = express();
     const httpServer = createServer(app);
     const prisma = new PrismaClient();
+
+    // console.log(process.env)
 
     const subscriptionServer = new SubscriptionServer(
         { 
@@ -49,8 +54,19 @@ buildSchema({
             }
         }],
         context : ({req}) : Context =>{
+            let token = ''
+            let userId : number | undefined;
+            if(req.headers.authorization){
+                token = req.headers.authorization.replace('Bearer ', '')
+            }
+            if(token.length > 0){
+                let payload = jwt.verify(token, process.env.JWTSECRET!) as string;
+                userId = parseInt(payload)
+
+            }
             return({
                 prisma : prisma,
+                userId : userId
             })
         }
     })

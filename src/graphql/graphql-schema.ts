@@ -131,6 +131,14 @@ export class Message{
     message : string;
 
 }
+@ObjectType()
+export class UserWithToken{
+    @Field(type => User)
+    user : User;
+
+    @Field()
+    token : string;
+}
 
 export enum groupType{
     DM,
