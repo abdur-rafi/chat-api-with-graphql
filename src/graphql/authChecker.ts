@@ -1,5 +1,5 @@
 import { AuthChecker } from "type-graphql";
-import { Context } from "../ctx";
+import { Context } from "./ctx";
 
 export const authChecker : AuthChecker<Context> = ({context}, roles)=>{
 

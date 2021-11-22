@@ -1,9 +1,11 @@
+import { PubSub } from "graphql-subscriptions";
 import { Arg, Authorized, Ctx, Query, Resolver } from "type-graphql";
-import { Context } from "../../ctx";
+import { Context } from "../ctx";
 import { GroupMember, MessageGroup, User } from "../graphql-schema";
 
 @Resolver()
 export class queryResolver{
+    
     
     @Query(retunrs => String)
     feed(){

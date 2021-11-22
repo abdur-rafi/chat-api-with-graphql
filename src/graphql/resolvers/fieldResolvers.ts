@@ -1,5 +1,5 @@
 import { Arg, Ctx, Field, FieldResolver, Resolver, Root } from "type-graphql";
-import { Context } from "../../ctx";
+import { Context } from "../ctx";
 import { Friend, GroupMember, groupType, Message, MessageGroup, relationToGroup, Request, User } from "../graphql-schema";
 
 @Resolver(of => User)

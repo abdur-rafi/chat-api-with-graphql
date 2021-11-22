@@ -1,11 +1,22 @@
-import { Arg, Authorized, Ctx, Mutation, Resolver } from "type-graphql";
-import { Context } from "../../ctx";
+import { Arg, Authorized, Ctx, Mutation, Resolver, PubSub, Publisher } from "type-graphql";
+import { Context, newAsMemberPayload, newGroupMember, newMessagePayload } from "../ctx";
 import { Friend, GroupMember, Message, MessageGroup, Request, User, UserWithToken } from "../graphql-schema";
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import { PubSubEngine } from "graphql-subscriptions";
+import { subscriptionTopicConstants } from "./subscriptionTopicConstants";
 
 @Resolver()
 export class mutationResolver{
+
+    @Mutation(retunrs => String)
+    test(
+        @PubSub() pb : PubSubEngine,
+        @Arg('testString') testString : string
+    ){
+        pb.publish('TEST', testString)
+        return testString
+    }
     
     @Mutation(returns => UserWithToken)
     async createUser(
@@ -67,7 +78,8 @@ export class mutationResolver{
     @Mutation(returns => Request)
     async postRequest(
         @Ctx() ctx : Context,
-        @Arg('toId') toId : number
+        @Arg('toId') toId : number,
+        @PubSub(subscriptionTopicConstants.NEW_AS_MEMBER) publish : Publisher<newAsMemberPayload>
     ){
         let fromId = ctx.userId!;
         if(fromId == toId){
@@ -76,6 +88,7 @@ export class mutationResolver{
         let f = await ctx.prisma.friend.findUnique({
             where : {
                 userId_friendId : {
+                    
                     userId : fromId,
                     friendId : toId
                 }
@@ -84,7 +97,14 @@ export class mutationResolver{
         if(f){
             throw new Error("Users are already friends")
         }
-        return await ctx.prisma.request.create({
+        let t = await ctx.prisma.request.create({
+            include : {
+                messageGroup : {
+                    include : {
+                        members : true
+                    }
+                }
+            },
             data : {
                 from : { connect : {id : fromId} },
                 to : { connect : {id : toId}},
@@ -106,7 +126,16 @@ export class mutationResolver{
                     }
                 }
             }
+            
         })
+
+        let newMember = t.messageGroup.members.filter(m => m.userId !== ctx.userId)[0];
+        publish({
+            member : newMember,
+            newMemberId : newMember.userId
+        })
+
+        return t
 
     }
 
@@ -178,19 +207,39 @@ export class mutationResolver{
     async postMessage(
         @Ctx() ctx : Context,
         @Arg('memberId') memberId : number,
-        @Arg('message') message : string 
+        @Arg('message') message : string ,
+        @PubSub(subscriptionTopicConstants.NEW_MESSAGE) publisher : Publisher<newMessagePayload>
     ){
-        let member = await ctx.prisma.groupMember.findUnique({ where : {id : memberId}})
+        let member = await ctx.prisma.groupMember.findUnique({ 
+            where : {id : memberId}, 
+            include : {
+                Group : {
+                    include : {
+                        members : {
+                            select : {
+                                userId : true
+                            }
+                        }
+                    }
+                }
+            }
+        })
+        
         if(!member || member.userId !== ctx.userId){
             throw new Error("Unauthorized");
         }
-        return await ctx.prisma.message.create({
+        let createdMessage = await ctx.prisma.message.create({
             data : {
                 message : message,
                 member : { connect : { id : memberId } },
                 messageGroup : {connect : {id : member.groupId}}
             }
         })
+
+        publisher({message : createdMessage, to : member.Group.members.map(m => m.userId).filter(id => id != ctx.userId)})
+
+
+        return createdMessage
     }
 
     @Authorized()
@@ -230,7 +279,11 @@ export class mutationResolver{
     async addMember(
         @Ctx() ctx : Context,
         @Arg('groupId') groupId : number,
-        @Arg('newMemberId') newMemberId : number
+        @Arg('newMemberId') newMemberId : number,
+        @PubSub(subscriptionTopicConstants.NEW_AS_MEMBER) publishNewAsMember : Publisher<newAsMemberPayload>,
+        @PubSub(subscriptionTopicConstants.NEW_AS_MEMBER) publishNewGroupMember : Publisher<newGroupMember>
+
+        
     ){
         let f = await ctx.prisma.friend.findUnique({where : {userId_friendId : {userId : ctx.userId!, friendId : newMemberId}}})
         if(!f) throw new Error("Unauthorized");
@@ -238,14 +291,35 @@ export class mutationResolver{
         if(!m){
             throw new Error("Unauthorized");
         }
-        
-        return ctx.prisma.groupMember.create({
+        let t = await ctx.prisma.groupMember.create({
             data : {
                 Group : {connect : {id : groupId}},
                 user : {connect : {id : newMemberId}},
                 relationToGroup : "GROUP"
+            },
+            include : {
+                Group : {
+                    include : {
+                        members : {
+                            select : {
+                                userId : true
+                            }
+                        }
+                    }
+                }
             }
         })
+
+
+        publishNewAsMember({
+            member : t as any,
+            newMemberId : newMemberId
+        })
+        publishNewGroupMember({
+            member : t as any,
+            otherMembersId : t.Group.members.map(m => m.userId).filter(id => id != newMemberId)
+        })
+        return t;
 
     }
 
